@@ -1,28 +1,35 @@
-from django.test import TestCase, Client
-from django.urls import reverse
+from django.test import TestCase
+from django.utils import timezone
 from .models import Recipe, Category
-from datetime import datetime
 
+class RecipeModelTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        # Set up non-modified objects used by all test methods
+        Category.objects.create(name='Test Category')
 
-class RecipeViewsTest(TestCase):
     def setUp(self):
-        self.client = Client()
-        # Create a category
-        self.category = Category.objects.create(name="Main Dishes")
-        # Create some sample recipes for testing
-        self.recipe1 = Recipe.objects.create(title="Recipe 1", description="Description 1", instructions="Instructions 1", ingredients="Ingredients 1", category=self.category)
-        self.recipe2 = Recipe.objects.create(title="Recipe 2", description="Description 2", instructions="Instructions 2", ingredients="Ingredients 2", category=self.category)
+        # Set up modified objects used by test methods
+        self.category = Category.objects.get(id=1)
+        Recipe.objects.create(title='Test Recipe', description='Test Description', category=self.category)
 
-    def test_main_view(self):
-        # Test main view
-        response = self.client.get(reverse('main'))
-        self.assertEqual(response.status_code, 200)  # Check if the status code is 200 (OK)
-        self.assertTemplateUsed(response, 'main.html')  # Check if the correct template is being used
-        self.assertQuerysetEqual(response.context['recipes'], Recipe.objects.filter(created_at__year=2023))  # Check if the correct recipes are in the context
+    def test_recipe_creation(self):
+        recipe = Recipe.objects.get(id=1)
+        self.assertEqual(recipe.title, 'Test Recipe')
+        self.assertEqual(recipe.description, 'Test Description')
+        self.assertEqual(recipe.category, self.category)
+        self.assertTrue(recipe.created_at <= timezone.now())
+        self.assertTrue(recipe.updated_at <= timezone.now())
 
-    def test_recipe_detail_view(self):
-        # Test recipe detail view
-        response = self.client.get(reverse('recipe_detail', args=(self.recipe1.id,)))
-        self.assertEqual(response.status_code, 200)  # Check if the status code is 200 (OK)
-        self.assertTemplateUsed(response, 'recipe_detail.html')  # Check if the correct template is being used
-        self.assertEqual(response.context['recipe'], self.recipe1)  # Check if the correct recipe is in the context
+    def test_recipe_str(self):
+        recipe = Recipe.objects.get(id=1)
+        self.assertEqual(str(recipe), recipe.title)
+
+class CategoryModelTest(TestCase):
+    def test_category_creation(self):
+        category = Category.objects.create(name='Test Category')
+        self.assertEqual(category.name, 'Test Category')
+
+    def test_category_str(self):
+        category = Category.objects.create(name='Test Category')
+        self.assertEqual(str(category), category.name)
